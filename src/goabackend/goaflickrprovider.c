@@ -326,6 +326,34 @@ parse_request_token_error (GoaOAuthProvider *oauth_provider, RestProxyCall *call
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+static gchar *
+build_authorization_uri (GoaOAuthProvider *provider,
+                         const gchar      *authorization_uri,
+                         const gchar      *escaped_oauth_token)
+{
+  gchar *uri = NULL;
+  gchar *perms_uri = NULL;
+
+  /* Chain up */
+  uri = GOA_OAUTH_PROVIDER_CLASS (goa_flickr_provider_parent_class)->build_authorization_uri (provider,
+                                                                                              authorization_uri,
+                                                                                              escaped_oauth_token);
+  if (uri == NULL)
+    {
+      g_warning ("Cannot obtain Flickr Authorization URI");
+      goto out;
+    }
+
+  perms_uri = g_strdup_printf ("%s"
+                               "&perms=write",
+                               uri);
+ out:
+  g_free (uri);
+  return perms_uri;
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
 static gboolean
 build_object (GoaProvider         *provider,
               GoaObjectSkeleton   *object,
@@ -405,6 +433,7 @@ goa_flickr_provider_class_init (GoaFlickrProviderClass *klass)
   provider_class->build_object          = build_object;
 
   oauth_class = GOA_OAUTH_PROVIDER_CLASS (klass);
+  oauth_class->build_authorization_uri  = build_authorization_uri;
   oauth_class->get_identity_sync        = get_identity_sync;
   oauth_class->is_deny_node             = is_deny_node;
   oauth_class->is_identity_node         = is_identity_node;
